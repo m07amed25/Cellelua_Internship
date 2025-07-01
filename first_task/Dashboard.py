@@ -5,14 +5,15 @@ import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Hotel Booking Dashboard", layout="wide")
 
-@st.cache_data
-def load_data():
-    return pd.read_csv("first inten project.csv")
-
-df = load_data()
+# File upload
+uploaded_file = st.sidebar.file_uploader("📁 Upload your CSV", type=["csv"])
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+else:
+    st.warning("⚠️ Please upload a CSV file to begin.")
+    st.stop()
 
 st.title("🏨 Hotel Booking Dashboard")
-st.markdown("A flexible dashboard (Plotly-free!) to explore your hotel booking dataset 📊")
 
 # Sidebar
 st.sidebar.header("🔍 Filters")
