@@ -5,15 +5,14 @@ import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Hotel Booking Dashboard", layout="wide")
 
-# File upload
-uploaded_file = st.sidebar.file_uploader("📁 Upload your CSV", type=["csv"])
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-else:
-    st.warning("⚠️ Please upload a CSV file to begin.")
-    st.stop()
+@st.cache_data
+def load_data():
+    return pd.read_csv("data.csv")
+
+df = load_data()
 
 st.title("🏨 Hotel Booking Dashboard")
+st.markdown("A flexible dashboard (Plotly-free!) to explore your hotel booking dataset 📊")
 
 # Sidebar
 st.sidebar.header("🔍 Filters")
@@ -26,7 +25,6 @@ status_filter = st.sidebar.multiselect("Booking Status", booking_statuses, defau
 repeated_filter = st.sidebar.selectbox("Repeated Customers", options=["All", "Yes", "No"])
 lead_time_range = st.sidebar.slider("Lead Time", int(df['lead time'].min()), int(df['lead time'].max()), (0, int(df['lead time'].max())))
 
-# Apply filters
 filtered_df = df[
     df['market segment type'].isin(segment_filter) &
     df['booking status'].isin(status_filter) &
