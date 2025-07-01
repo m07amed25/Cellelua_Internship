@@ -7,7 +7,7 @@ st.set_page_config(page_title="Hotel Booking Dashboard", layout="wide")
 
 @st.cache_data
 def load_data():
-    return pd.read_csv("data.csv")
+    return pd.read_csv(r"C:\Users\CRIZMA\Desktop\Cellelua\first_task\Dashboard\data.csv")
 
 df = load_data()
 
