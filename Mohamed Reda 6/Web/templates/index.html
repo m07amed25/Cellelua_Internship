@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NYC Taxi Fare Predictor</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .header p {
+        font-size: 1.2em;
+        opacity: 0.9;
+      }
+
+      .form-container {
+        padding: 40px;
+      }
+
+      .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .form-group.full-width {
+        flex: 100%;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background-color: #fafafa;
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #4ecdc4;
+        box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+        background-color: white;
+      }
+
+      .predict-btn {
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+        margin-top: 20px;
+      }
+
+      .predict-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .predict-btn:active {
+        transform: translateY(0);
+      }
+
+      .result {
+        margin-top: 30px;
+        padding: 25px;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 18px;
+        display: none;
+      }
+
+      .result.success {
+        background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+        color: white;
+      }
+
+      .result.error {
+        background: linear-gradient(135deg, #ff4757 0%, #ff6b7a 100%);
+        color: white;
+      }
+
+      .fare-amount {
+        font-size: 2.5em;
+        font-weight: bold;
+        margin: 15px 0;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #4ecdc4;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .model-info {
+        background: #f8f9fa;
+        padding: 20px;
+        border-top: 1px solid #e9ecef;
+        text-align: center;
+        color: #6c757d;
+      }
+
+      .model-info h3 {
+        color: #495057;
+        margin-bottom: 10px;
+      }
+
+      .coordinates-hint {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+        font-style: italic;
+      }
+
+      @media (max-width: 768px) {
+        .form-row {
+          flex-direction: column;
+        }
+
+        .header h1 {
+          font-size: 2em;
+        }
+
+        .form-container {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>NYC Taxi Fare Predictor</h1>
+        <p>Powered by Enhanced XGBoost ML Model (77.1% Accuracy)</p>
+      </div>
+
+      <div class="form-container">
+        <form id="fareForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pickup_longitude">Pickup Longitude</label>
+              <input
+                type="number"
+                id="pickup_longitude"
+                step="any"
+                value="-73.9857"
+                required
+              />
+              <div class="coordinates-hint">NYC: -74.0 to -73.7</div>
+            </div>
+            <div class="form-group">
+              <label for="pickup_latitude">Pickup Latitude</label>
+              <input
+                type="number"
+                id="pickup_latitude"
+                step="any"
+                value="40.7484"
+                required
+              />
+              <div class="coordinates-hint">NYC: 40.6 to 40.9</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="dropoff_longitude">Dropoff Longitude</label>
+              <input
+                type="number"
+                id="dropoff_longitude"
+                step="any"
+                value="-73.9442"
+                required
+              />
+              <div class="coordinates-hint">NYC: -74.0 to -73.7</div>
+            </div>
+            <div class="form-group">
+              <label for="dropoff_latitude">Dropoff Latitude</label>
+              <input
+                type="number"
+                id="dropoff_latitude"
+                step="any"
+                value="40.8080"
+                required
+              />
+              <div class="coordinates-hint">NYC: 40.6 to 40.9</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="passenger_count">Passenger Count</label>
+              <select id="passenger_count" required>
+                <option value="1">1 Passenger</option>
+                <option value="2">2 Passengers</option>
+                <option value="3">3 Passengers</option>
+                <option value="4">4 Passengers</option>
+                <option value="5">5 Passengers</option>
+                <option value="6">6 Passengers</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="pickup_datetime">Pickup Date & Time</label>
+              <input type="datetime-local" id="pickup_datetime" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="weather">Weather Condition</label>
+              <select id="weather" required>
+                <option value="Clear">☀️ Clear</option>
+                <option value="Cloudy">☁️ Cloudy</option>
+                <option value="Rainy">🌧️ Rainy</option>
+                <option value="Windy">💨 Windy</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="traffic_condition">Traffic Condition</label>
+              <select id="traffic_condition" required>
+                <option value="Light">🟢 Light Traffic</option>
+                <option value="Moderate">🟡 Moderate Traffic</option>
+                <option value="Heavy">🔴 Heavy Traffic</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="car_condition">Car Condition</label>
+              <select id="car_condition" required>
+                <option value="Good">Good</option>
+                <option value="Very Good">Very Good</option>
+                <option value="Excellent">Excellent</option>
+                <option value="Bad">Bad</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="predict-btn">Predict Fare</button>
+        </form>
+
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Calculating fare with AI model...</p>
+        </div>
+
+        <div id="result" class="result"></div>
+      </div>
+
+      <div class="model-info">
+        <h3>Model Information</h3>
+        <p>
+          <strong>Enhanced XGBoost Regressor</strong> | R² Score: 77.1% | RMSE:
+          $1.65
+        </p>
+        <p>Trained on 500K+ NYC taxi rides with advanced feature engineering</p>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById("pickup_datetime").value = new Date()
+        .toISOString()
+        .slice(0, 16);
+
+      document
+        .getElementById("fareForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const loading = document.querySelector(".loading");
+          const result = document.getElementById("result");
+
+          loading.style.display = "block";
+          result.style.display = "none";
+
+          const formData = {
+            pickup_longitude: parseFloat(
+              document.getElementById("pickup_longitude").value
+            ),
+            pickup_latitude: parseFloat(
+              document.getElementById("pickup_latitude").value
+            ),
+            dropoff_longitude: parseFloat(
+              document.getElementById("dropoff_longitude").value
+            ),
+            dropoff_latitude: parseFloat(
+              document.getElementById("dropoff_latitude").value
+            ),
+            passenger_count: parseInt(
+              document.getElementById("passenger_count").value
+            ),
+            pickup_datetime: document.getElementById("pickup_datetime").value,
+            weather: document.getElementById("weather").value,
+            traffic_condition:
+              document.getElementById("traffic_condition").value,
+            car_condition: document.getElementById("car_condition").value,
+          };
+
+          fetch("/predict", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              loading.style.display = "none";
+              result.style.display = "block";
+
+              if (data.success) {
+                result.className = "result success";
+                result.innerHTML = `
+                        <h3>- Prediction Successful!</h3>
+                        <div class="fare-amount">$${data.predicted_fare}</div>
+                        <p>Estimated distance: ${data.distance} miles</p>
+                        <p>Prediction made with 77.1% model accuracy</p>
+                    `;
+              } else {
+                result.className = "result error";
+                result.innerHTML = `
+                        <h3>Error</h3>
+                        <p>${data.error}</p>
+                    `;
+              }
+            })
+            .catch((error) => {
+              loading.style.display = "none";
+              result.style.display = "block";
+              result.className = "result error";
+              result.innerHTML = `
+                    <h3>Network Error</h3>
+                    <p>Failed to connect to the prediction server. Please try again.</p>
+                `;
+            });
+        });
+
+      function setLocation(preset) {
+        const presets = {
+          times_square_to_jfk: {
+            pickup_longitude: -73.985,
+            pickup_latitude: 40.758,
+            dropoff_longitude: -73.778,
+            dropoff_latitude: 40.641,
+          },
+          central_park_to_brooklyn: {
+            pickup_longitude: -73.965,
+            pickup_latitude: 40.782,
+            dropoff_longitude: -73.95,
+            dropoff_latitude: 40.678,
+          },
+        };
+
+        const location = presets[preset];
+        if (location) {
+          Object.keys(location).forEach((key) => {
+            document.getElementById(key).value = location[key];
+          });
+        }
+      }
+    </script>
+  </body>
+</html>
